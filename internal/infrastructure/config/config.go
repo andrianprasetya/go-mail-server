@@ -29,7 +29,8 @@ type Config struct {
 	AllowedOrigins []string
 
 	// Rate Limiting
-	RateLimit int
+	RateLimit           int
+	RateLimitExpiration int // in hours
 }
 
 // Configuration errors
@@ -51,9 +52,14 @@ func Load() (*Config, error) {
 		smtpPort = 587
 	}
 
-	rateLimit, err := strconv.Atoi(getEnv("RATE_LIMIT", "10"))
+	rateLimit, err := strconv.Atoi(getEnv("RATE_LIMIT", "2"))
 	if err != nil {
-		rateLimit = 10
+		rateLimit = 2
+	}
+
+	rateLimitExpiration, err := strconv.Atoi(getEnv("RATE_LIMIT_EXPIRATION_HOURS", "24"))
+	if err != nil {
+		rateLimitExpiration = 24
 	}
 
 	allowedOrigins := strings.Split(getEnv("ALLOWED_ORIGINS", "*"), ",")
@@ -62,15 +68,16 @@ func Load() (*Config, error) {
 	}
 
 	cfg := &Config{
-		AppPort:        getEnv("APP_PORT", "3000"),
-		AppEnv:         getEnv("APP_ENV", "development"),
-		SMTPHost:       getEnv("SMTP_HOST", "smtp.gmail.com"),
-		SMTPPort:       smtpPort,
-		SMTPEmail:      getEnv("SMTP_EMAIL", ""),
-		SMTPPassword:   getEnv("SMTP_PASSWORD", ""),
-		ReceiverEmail:  getEnv("RECEIVER_EMAIL", ""),
-		AllowedOrigins: allowedOrigins,
-		RateLimit:      rateLimit,
+		AppPort:             getEnv("APP_PORT", "3000"),
+		AppEnv:              getEnv("APP_ENV", "development"),
+		SMTPHost:            getEnv("SMTP_HOST", "smtp.gmail.com"),
+		SMTPPort:            smtpPort,
+		SMTPEmail:           getEnvWithFallback("SMTP_EMAIL", "SMTP_USERNAME", ""),
+		SMTPPassword:        getEnv("SMTP_PASSWORD", ""),
+		ReceiverEmail:       getEnv("RECEIVER_EMAIL", ""),
+		AllowedOrigins:      allowedOrigins,
+		RateLimit:           rateLimit,
+		RateLimitExpiration: rateLimitExpiration,
 	}
 
 	if err := cfg.Validate(); err != nil {
@@ -102,6 +109,17 @@ func (c *Config) IsProduction() bool {
 // getEnv gets an environment variable or returns a default value
 func getEnv(key, defaultValue string) string {
 	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return defaultValue
+}
+
+// getEnvWithFallback tries the primary key first, then falls back to an alternate key
+func getEnvWithFallback(primary, fallback, defaultValue string) string {
+	if value := os.Getenv(primary); value != "" {
+		return value
+	}
+	if value := os.Getenv(fallback); value != "" {
 		return value
 	}
 	return defaultValue

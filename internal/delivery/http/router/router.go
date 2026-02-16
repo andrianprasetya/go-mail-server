@@ -40,14 +40,16 @@ func (r *Router) Setup() {
 	r.app.Use(middleware.Recover())
 	r.app.Use(middleware.RequestLogger())
 
-	// CORS configuration
-	r.app.Use(cors.New(cors.Config{
-		AllowOrigins:     stringSliceToCSV(r.config.AllowedOrigins),
-		AllowMethods:     "GET,POST,OPTIONS",
-		AllowHeaders:     "Origin,Content-Type,Accept,Authorization",
-		AllowCredentials: false,
-		MaxAge:           86400, // 24 hours
-	}))
+	// CORS configuration (skip in development for easier testing)
+	if r.config.AppEnv != "development" {
+		r.app.Use(cors.New(cors.Config{
+			AllowOrigins:     stringSliceToCSV(r.config.AllowedOrigins),
+			AllowMethods:     "GET,POST,OPTIONS",
+			AllowHeaders:     "Origin,Content-Type,Accept,Authorization",
+			AllowCredentials: false,
+			MaxAge:           86400, // 24 hours
+		}))
+	}
 
 	// Health check endpoints (no rate limiting)
 	r.app.Get("/health", r.healthHandler.HealthCheck)
@@ -56,10 +58,10 @@ func (r *Router) Setup() {
 	// API routes
 	api := r.app.Group("/api")
 
-	// Contact endpoint with rate limiting
+	// Contact endpoint with rate limiting (default: 2 requests per 24 hours per IP)
 	contactLimiter := middleware.NewRateLimiter(middleware.RateLimiterConfig{
 		Max:        r.config.RateLimit,
-		Expiration: 1 * time.Minute,
+		Expiration: time.Duration(r.config.RateLimitExpiration) * time.Hour,
 	})
 	api.Post("/contact", contactLimiter, r.contactHandler.HandleContact)
 }
