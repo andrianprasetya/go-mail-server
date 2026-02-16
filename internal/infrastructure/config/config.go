@@ -19,8 +19,9 @@ type Config struct {
 	// SMTP
 	SMTPHost     string
 	SMTPPort     int
-	SMTPEmail    string
+	SMTPUsername string // auth username (API key for Mailjet, email for Gmail)
 	SMTPPassword string
+	SMTPEmail    string // sender "From" email address
 
 	// Email
 	ReceiverEmail string
@@ -35,8 +36,9 @@ type Config struct {
 
 // Configuration errors
 var (
-	ErrMissingSMTPEmail     = errors.New("SMTP_EMAIL is required")
+	ErrMissingSMTPUsername  = errors.New("SMTP_USERNAME is required")
 	ErrMissingSMTPPassword  = errors.New("SMTP_PASSWORD is required")
+	ErrMissingSMTPEmail     = errors.New("SMTP_EMAIL is required")
 	ErrMissingReceiverEmail = errors.New("RECEIVER_EMAIL is required")
 )
 
@@ -72,8 +74,9 @@ func Load() (*Config, error) {
 		AppEnv:              getEnv("APP_ENV", "development"),
 		SMTPHost:            getEnv("SMTP_HOST", "smtp.gmail.com"),
 		SMTPPort:            smtpPort,
-		SMTPEmail:           getEnvWithFallback("SMTP_EMAIL", "SMTP_USERNAME", ""),
+		SMTPUsername:        getEnv("SMTP_USERNAME", ""),
 		SMTPPassword:        getEnv("SMTP_PASSWORD", ""),
+		SMTPEmail:           getEnv("SMTP_EMAIL", ""),
 		ReceiverEmail:       getEnv("RECEIVER_EMAIL", ""),
 		AllowedOrigins:      allowedOrigins,
 		RateLimit:           rateLimit,
@@ -89,11 +92,14 @@ func Load() (*Config, error) {
 
 // Validate checks if all required configuration is present
 func (c *Config) Validate() error {
-	if c.SMTPEmail == "" {
-		return ErrMissingSMTPEmail
+	if c.SMTPUsername == "" {
+		return ErrMissingSMTPUsername
 	}
 	if c.SMTPPassword == "" {
 		return ErrMissingSMTPPassword
+	}
+	if c.SMTPEmail == "" {
+		return ErrMissingSMTPEmail
 	}
 	if c.ReceiverEmail == "" {
 		return ErrMissingReceiverEmail

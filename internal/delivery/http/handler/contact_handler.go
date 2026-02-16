@@ -55,7 +55,7 @@ func (h *ContactHandler) HandleContact(c *fiber.Ctx) error {
 	if err != nil {
 		// Check if it's a validation error (client error)
 		if !output.Success && output.Message != "Failed to send email. Please try again later." {
-			return c.Status(fiber.StatusBadRequest).JSON(
+			return c.Status(fiber.StatusUnprocessableEntity).JSON(
 				dto.NewErrorResponse(output.Message),
 			)
 		}

@@ -24,7 +24,7 @@ func NewSMTPRepository(cfg *config.Config) repository.EmailRepository {
 	dialer := gomail.NewDialer(
 		cfg.SMTPHost,
 		cfg.SMTPPort,
-		cfg.SMTPEmail,
+		cfg.SMTPUsername,
 		cfg.SMTPPassword,
 	)
 

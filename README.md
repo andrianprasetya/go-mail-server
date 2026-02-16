@@ -345,6 +345,54 @@ emailRepo := email.NewSendGridRepository(cfg)
 
 ## Production Deployment
 
+### Deploy to Server (Docker Run)
+
+1. **Build and push image:**
+```bash
+docker login
+docker build -t andrianprasetya/go-mail-server:latest .
+docker push andrianprasetya/go-mail-server:latest
+```
+
+2. **On the server, pull and run:**
+```bash
+docker pull andrianprasetya/go-mail-server:latest
+
+docker run -d \
+  --name contact-form-api \
+  --restart unless-stopped \
+  -p 8090:3000 \
+  -e APP_PORT=3000 \
+  -e APP_ENV=production \
+  -e SMTP_HOST=smtp.gmail.com \
+  -e SMTP_PORT=587 \
+  -e SMTP_USERNAME=your-email@gmail.com \
+  -e SMTP_PASSWORD=your-app-password \
+  -e RECEIVER_EMAIL=receiver@example.com \
+  -e ALLOWED_ORIGINS=https://yourdomain.com \
+  -e RATE_LIMIT=2 \
+  -e RATE_LIMIT_EXPIRATION_HOURS=24 \
+  andrianprasetya/go-mail-server:latest
+```
+
+Or using an `.env` file on the server:
+```bash
+docker run -d \
+  --name contact-form-api \
+  --restart unless-stopped \
+  -p 8090:3000 \
+  --env-file .env \
+  andrianprasetya/go-mail-server:latest
+```
+
+3. **Useful commands:**
+```bash
+docker logs -f contact-form-api    # View logs
+docker restart contact-form-api    # Restart
+docker stop contact-form-api       # Stop
+docker rm contact-form-api         # Remove container
+```
+
 ### Docker Compose with Reverse Proxy
 
 ```yaml
